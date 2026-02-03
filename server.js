@@ -1,7 +1,6 @@
 const express = require('express');
 const app = express();
 
-// Enable CORS for all requests
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -32,16 +31,16 @@ app.post('/update', (req, res) => {
   console.log('Body:', req.body);
   
   try {
-    const { userId, username, position } = req.body;
+    const { userId, username } = req.body;
     
     if (!userId || !username) {
       console.log('Missing data!');
       return res.status(400).json({ error: 'Missing data' });
     }
     
+    // Store username and lastSeen (for cleanup), but don't show lastSeen
     users[userId] = { 
-      username: username, 
-      position: position || [0, 0, 0], 
+      username: username,
       lastSeen: Date.now() 
     };
     
@@ -66,13 +65,23 @@ app.post('/update', (req, res) => {
 
 app.get('/users', (req, res) => {
   const now = Date.now();
+  
+  // Clean up old users
   Object.keys(users).forEach(id => {
     if (now - users[id].lastSeen > 10000) {
       delete users[id];
     }
   });
   
-  res.json(users);
+  // Return ONLY username and userId (remove lastSeen from response)
+  let cleanUsers = {};
+  Object.keys(users).forEach(id => {
+    cleanUsers[id] = {
+      username: users[id].username
+    };
+  });
+  
+  res.json(cleanUsers);
 });
 
 const PORT = process.env.PORT || 10000;
