@@ -1,15 +1,11 @@
 {
-  "name": "roblox-websocket",
+  "name": "roblox-server",
   "version": "1.0.0",
-  "description": "WebSocket server for Roblox script",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "ws": "^8.14.2"
-  },
-  "engines": {
-    "node": ">=14.0.0"
+    "express": "^4.18.2"
   }
 }
