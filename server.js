@@ -1,44 +1,36 @@
-const WebSocket = require('ws');
-const http = require('http');
+const express = require('express');
+const app = express();
 
-const server = http.createServer();
-const wss = new WebSocket.Server({ server });
+app.use(express.json());
 
-let clients = new Map();
+let users = {};
 
-wss.on('connection', (ws) => {
-  console.log('New client connected');
+// Homepage - shows server is running
+app.get('/', (req, res) => {
+  res.send('Roblox WebSocket Server is Running! Users online: ' + Object.keys(users).length);
+});
+
+// Update user position
+app.post('/update', (req, res) => {
+  const { userId, username, position } = req.body;
+  users[userId] = { username, position, lastSeen: Date.now() };
   
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message);
-      
-      if (data.type === 'register') {
-        clients.set(ws, {
-          username: data.username,
-          userId: data.userId
-        });
-        console.log(`User registered: ${data.username}`);
-      }
-      
-      // Broadcast to all clients
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
-      });
-    } catch (error) {
-      console.error('Error:', error);
+  // Remove inactive users (not seen in 10 seconds)
+  Object.keys(users).forEach(id => {
+    if (Date.now() - users[id].lastSeen > 10000) {
+      delete users[id];
     }
   });
   
-  ws.on('close', () => {
-    clients.delete(ws);
-    console.log('Client disconnected');
-  });
+  res.json({ success: true, totalUsers: Object.keys(users).length });
+});
+
+// Get all active users
+app.get('/users', (req, res) => {
+  res.json(users);
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => {
-  console.log(`WebSocket server running on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
