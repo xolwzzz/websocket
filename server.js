@@ -1,12 +1,21 @@
 const express = require('express');
 const app = express();
 
-// IMPORTANT: Parse JSON bodies
+// Enable CORS for all requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 
 let users = {};
 
-// Homepage
 app.get('/', (req, res) => {
   const now = Date.now();
   Object.keys(users).forEach(id => {
@@ -18,17 +27,16 @@ app.get('/', (req, res) => {
   res.send('Roblox WebSocket Server is Running! Users online: ' + Object.keys(users).length);
 });
 
-// Update user position
 app.post('/update', (req, res) => {
-  console.log('Received POST /update');
+  console.log('POST /update received');
   console.log('Body:', req.body);
   
   try {
     const { userId, username, position } = req.body;
     
     if (!userId || !username) {
-      console.log('ERROR: Missing userId or username');
-      return res.status(400).json({ error: 'Missing userId or username' });
+      console.log('Missing data!');
+      return res.status(400).json({ error: 'Missing data' });
     }
     
     users[userId] = { 
@@ -37,7 +45,6 @@ app.post('/update', (req, res) => {
       lastSeen: Date.now() 
     };
     
-    // Clean old users
     const now = Date.now();
     Object.keys(users).forEach(id => {
       if (now - users[id].lastSeen > 10000) {
@@ -45,20 +52,18 @@ app.post('/update', (req, res) => {
       }
     });
     
-    console.log(`User ${username} registered. Total: ${Object.keys(users).length}`);
+    console.log(`✅ User ${username} updated! Total: ${Object.keys(users).length}`);
     
-    // IMPORTANT: Send response
     res.status(200).json({ 
       success: true, 
       totalUsers: Object.keys(users).length 
     });
   } catch (error) {
-    console.error('ERROR in /update:', error);
-    res.status(500).json({ error: 'Server error', message: error.message });
+    console.error('Error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Get all users
 app.get('/users', (req, res) => {
   const now = Date.now();
   Object.keys(users).forEach(id => {
@@ -67,11 +72,10 @@ app.get('/users', (req, res) => {
     }
   });
   
-  console.log('GET /users - Total users:', Object.keys(users).length);
   res.json(users);
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`Server on port ${PORT}`);
 });
